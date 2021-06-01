@@ -124,8 +124,8 @@ func (p *Popeye) scannedGVRs() []string {
 		"apps/v1/statefulsets",
 		"policy/v1beta1/poddisruptionbudgets",
 		"policy/v1beta1/podsecuritypolicies",
-		"networking.k8s.io/v1/ingresses",
-		"networking.k8s.io/v1/networkpolicies",
+		// "networking.k8s.io/v1/ingresses",
+		//"networking.k8s.io/v1/networkpolicies",
 		"autoscaling/v1/horizontalpodautoscalers",
 		"rbac.authorization.k8s.io/v1/clusterroles",
 		"rbac.authorization.k8s.io/v1/clusterrolebindings",
@@ -182,8 +182,8 @@ func (p *Popeye) sanitizers() map[string]scrubFn {
 		"apps/v1/replicasets":       scrub.NewReplicaSet,
 		"apps/v1/statefulsets":      scrub.NewStatefulSet,
 		"autoscaling/v1/horizontalpodautoscalers":          scrub.NewHorizontalPodAutoscaler,
-		"networking.k8s.io/v1/ingresses":                   scrub.NewIngress,
-		"networking.k8s.io/v1/networkpolicies":             scrub.NewNetworkPolicy,
+		// "networking.k8s.io/v1/ingresses":                   scrub.NewIngress,
+		//"networking.k8s.io/v1/networkpolicies":             scrub.NewNetworkPolicy,
 		"policy/v1beta1/poddisruptionbudgets":              scrub.NewPodDisruptionBudget,
 		"policy/v1beta1/podsecuritypolicies":               scrub.NewPodSecurityPolicy,
 		"rbac.authorization.k8s.io/v1/clusterroles":        scrub.NewClusterRole,
@@ -211,9 +211,20 @@ func (p *Popeye) Sanitize() (int, int, error) {
 			if err != nil {
 				log.Fatal().Err(err).Msg("Parse S3 bucket URI")
 			}
+			uri, err := url.Parse(*p.flags.S3Bucket)
+			if err != nil {
+				log.Fatal().Err(err).Msg("Parse S3 bucket URI")
+			}
+
+			var config = &aws.Config{
+				LogLevel: aws.LogLevel(aws.LogDebugWithRequestErrors)}
+
+			if endpoint := uri.Query().Get("endpoints"); endpoint != "" {
+				config.Endpoint = &endpoint
+			}
+
 			// Create a single AWS session (we can re use this if we're uploading many files)
-			s, err := session.NewSession(&aws.Config{
-				LogLevel: aws.LogLevel(aws.LogDebugWithRequestErrors)})
+			s, err := session.NewSession(config)
 			if err != nil {
 				log.Fatal().Err(err).Msg("Create S3 Session")
 			}
